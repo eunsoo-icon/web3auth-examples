@@ -4,7 +4,13 @@
 "use client";
 
 // IMP START - Quick Start
-import { CHAIN_NAMESPACES, IAdapter, IProvider, WEB3AUTH_NETWORK, getEvmChainConfig } from "@web3auth/base";
+import {
+  IAdapter,
+  IProvider,
+  WEB3AUTH_NETWORK,
+  getEvmChainConfig,
+  WEB3AUTH_NETWORK_TYPE
+} from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { getDefaultExternalAdapters } from "@web3auth/default-evm-adapter";
 import { Web3Auth, Web3AuthOptions } from "@web3auth/modal";
@@ -13,52 +19,119 @@ import { useEffect, useState } from "react";
 
 // IMP START - Blockchain Calls
 import RPC from "./ethersRPC";
+import { AuthAdapter, LoginConfig } from "@web3auth/auth-adapter";
 // import RPC from "./viemRPC";
 // import RPC from "./web3RPC";
 // IMP END - Blockchain Calls
 
 // IMP START - Dashboard Registration
-const clientId = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"; // get from https://dashboard.web3auth.io
+const configs: {name: string, clientId: string, web3AuthNetwork: WEB3AUTH_NETWORK_TYPE, loginConfig?: LoginConfig}[] = [
+  {
+    name: "Web3auth examples",
+    clientId: "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ",
+    web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
+  },
+  {
+    name: "Supercycl",
+    clientId: "BKJLN8dF895jB7Y0iKjGX6s3wpnrKHZdShbXhGfFeQ8q_QRL1jNCWt9TtsOgPKz3lA5jX9hKIDD-25V1gClUCrU",
+    web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+    loginConfig: {
+      google: {
+        verifier: "group-google-login",
+        verifierSubIdentifier: "supecycl-google-login",
+        // verifier: "supercycl-google-auth",
+        typeOfLogin: "google",
+        clientId: "484626646693-g2gu470r38u70hdegst1rve07v0oeu6m",
+      },
+    },
+  },
+  {
+    name: "Hana Wallet v4.1.3",
+    clientId: "BM3yT6NmMXOrwztsgF1V15ZxVOVjG6q3nRr9baQaOSrkRLFq-J40dvzZA-S6TSkWYOwgszkS1Y1aYMAQCPbL5oE",
+    web3AuthNetwork: WEB3AUTH_NETWORK.TESTNET,
+    loginConfig: {
+      // hana wallet address : 0x38AafAb27b0473e5E5fC33152662CB7B3bc299cF
+      // TODO get the same wallet address with Hana Wallet without email_passwordless configuration
+      // email_passwordless: {  // not working
+      //   verifier: "hana-email-aggregate-2",
+      //   verifierSubIdentifier: "hana-email-1",
+      //   typeOfLogin: "email_passwordless",
+      // },
+      google: {
+        // hana wallet address : 0xa976653De0AD943c62babe090a3476124B70Fb74
+        // TODO can't get the same wallet address with Hana. Need to check the configuration
+        verifier: "hana-google-aggregate",
+        verifierSubIdentifier: "hana-google-chrome-test2", // 0x7f466b2830C6bBfD9386D5D73727dA47A7EE33FA
+        // verifierSubIdentifier: "hana-google-1",  // 0x7f466b2830C6bBfD9386D5D73727dA47A7EE33FA
+        typeOfLogin: "google",
+        clientId: "126616343848-09it14orn4odu9mfuads76u3kf5odogs",
+        // clientId: "126616343848-3g5m6kljmfabkljhbb1c7o0i3o8uuq7d", // not working
+        // clientId: "126616343848-2fk7d89f52ge3i85lcedt1m0g7p01m5n",  // not working
+      },
+    },
+  },
+];
 // IMP END - Dashboard Registration
-
-// IMP START - Chain Config
-const chainId = 0xaa36a7; // Sepolia testnet
-// Get custom chain configs for your chain from https://web3auth.io/docs/connect-blockchain
-const chainConfig = getEvmChainConfig(chainId, clientId)!;
-// IMP END - Chain Config
-
-// IMP START - SDK Initialization
-const privateKeyProvider = new EthereumPrivateKeyProvider({
-  config: { chainConfig },
-});
-
-const web3AuthOptions: Web3AuthOptions = {
-  clientId,
-  web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
-  privateKeyProvider,
-}
-const web3auth = new Web3Auth(web3AuthOptions);
-// IMP END - SDK Initialization
 
 function App() {
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [configIndex, setconfigIndex] = useState<number>(0);
+  const [web3auth, setWeb3Auth] = useState<Web3Auth | null>(null);
 
   useEffect(() => {
     const init = async () => {
       try {
+        console.log("init web3auth with configIndex", configIndex);
+// IMP START - Chain Config
+        const config = configs[configIndex] || configs[0];
+        const chainId = 0xaa36a7; // Sepolia testnet
+// Get custom chain configs for your chain from https://web3auth.io/docs/connect-blockchain
+        const chainConfig = getEvmChainConfig(chainId, config.clientId)!;
+// IMP END - Chain Config
+
+// IMP START - SDK Initialization
+        const privateKeyProvider = new EthereumPrivateKeyProvider({
+          config: {chainConfig},
+        });
+
+        const web3AuthOptions: Web3AuthOptions = {
+          clientId: config.clientId,
+          web3AuthNetwork: config.web3AuthNetwork,
+          privateKeyProvider,
+        }
+        const w3a = new Web3Auth(web3AuthOptions);
+        setWeb3Auth(w3a);
+// IMP END - SDK Initialization
+
         // IMP START - Configuring External Wallets
-        const adapters = await getDefaultExternalAdapters({ options: web3AuthOptions });
+        const adapters = await getDefaultExternalAdapters({options: web3AuthOptions});
         adapters.forEach((adapter: IAdapter<unknown>) => {
-          web3auth.configureAdapter(adapter);
+          w3a.configureAdapter(adapter);
         });
         // IMP END - Configuring External Wallets
-        // IMP START - SDK Initialization
-        await web3auth.initModal();
-        // IMP END - SDK Initialization
-        setProvider(web3auth.provider);
+        // configure adapter
 
-        if (web3auth.connected) {
+        const authAdapter = new AuthAdapter({
+          adapterSettings: {
+            whiteLabel: {
+              appName: config.name,
+              logoLight: "https://web3auth.io/images/web3authlog.png",
+              logoDark: "https://web3auth.io/images/web3authlogodark.png",
+              defaultLanguage: "ko", // en, de, ja, ko, zh, es, fr, pt, nl
+              mode: "dark", // whether to enable dark mode. defaultValue: false
+            },
+            loginConfig: config.loginConfig,
+          },
+        });
+        w3a.configureAdapter(authAdapter);
+
+        // IMP START - SDK Initialization
+        await w3a.initModal();
+        // IMP END - SDK Initialization
+        setProvider(w3a.provider);
+
+        if (w3a.connected) {
           setLoggedIn(true);
         }
       } catch (error) {
@@ -67,28 +140,28 @@ function App() {
     };
 
     init();
-  }, []);
+  }, [configIndex]);
 
   const login = async () => {
     // IMP START - Login
-    const web3authProvider = await web3auth.connect();
+    const web3authProvider = await web3auth!.connect();
     // IMP END - Login
     setProvider(web3authProvider);
-    if (web3auth.connected) {
+    if (web3auth!.connected) {
       setLoggedIn(true);
     }
   };
 
   const getUserInfo = async () => {
     // IMP START - Get User Information
-    const user = await web3auth.getUserInfo();
+    const user = await web3auth?.getUserInfo();
     // IMP END - Get User Information
     uiConsole(user);
   };
 
   const logout = async () => {
     // IMP START - Logout
-    await web3auth.logout();
+    await web3auth?.logout();
     // IMP END - Logout
     setProvider(null);
     setLoggedIn(false);
@@ -181,11 +254,24 @@ function App() {
   );
 
   const unloggedInView = (
-    <button onClick={login} className="card">
-      Login
-    </button>
+    <div className="card space-x-2">
+      <select
+        value={configIndex}
+        onChange={(e) => setconfigIndex(Number(e.target.value))}
+        className="border rounded p-1"
+      >
+        <option value={0}>Web3auth</option>
+        <option value={1}>Supercycl</option>
+        <option value={2}>Hana Wallet</option>
+      </select>
+      <pre style={{ textAlign: "left" }}>
+        {JSON.stringify(configs[configIndex], null, 2)}
+      </pre>
+      <button onClick={login} className="card">
+        Login
+      </button>
+    </div>
   );
-
   return (
     <div className="container">
       <h1 className="title">
