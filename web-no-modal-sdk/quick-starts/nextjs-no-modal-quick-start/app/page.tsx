@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 // IMP START - Quick Start
-import { IProvider, WALLET_ADAPTERS, WEB3AUTH_NETWORK, getEvmChainConfig } from "@web3auth/base";
+import { IProvider, WALLET_ADAPTERS, WEB3AUTH_NETWORK, UX_MODE, getEvmChainConfig } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { Web3AuthNoModal } from "@web3auth/no-modal";
 import { AuthAdapter } from "@web3auth/auth-adapter";
@@ -18,7 +18,7 @@ import RPC from "./ethersRPC";
 // IMP END - Blockchain Calls
 
 // IMP START - Dashboard Registration
-const clientId = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"; // get from https://dashboard.web3auth.io
+const clientId = "BM3yT6NmMXOrwztsgF1V15ZxVOVjG6q3nRr9baQaOSrkRLFq-J40dvzZA-S6TSkWYOwgszkS1Y1aYMAQCPbL5oE";
 // IMP END - Dashboard Registration
 
 // IMP START - Chain Config
@@ -31,11 +31,27 @@ const privateKeyProvider = new EthereumPrivateKeyProvider({ config: { chainConfi
 
 const web3auth = new Web3AuthNoModal({
   clientId,
-  web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_MAINNET,
+  web3AuthNetwork: WEB3AUTH_NETWORK.TESTNET,
   privateKeyProvider,
 });
 
-const authAdapter = new AuthAdapter();
+const authAdapter = new AuthAdapter({
+  adapterSettings: {
+    clientId,
+    uxMode: UX_MODE.REDIRECT,
+    loginConfig: {
+      // TODO different wallet address with Hana. Need to check the configuration
+      // hana wallet v4.1.3 address: 0xa976653De0AD943c62babe090a3476124B70Fb74
+      // this example address: 0x7f466b2830C6bBfD9386D5D73727dA47A7EE33FA
+      google: {
+        verifier: "hana-google-aggregate",
+        verifierSubIdentifier: "hana-google-chrome-test2",
+        typeOfLogin: "google",
+        clientId: "126616343848-09it14orn4odu9mfuads76u3kf5odogs",
+      },
+    },
+  },
+});
 web3auth.configureAdapter(authAdapter);
 // IMP END - SDK Initialization
 
