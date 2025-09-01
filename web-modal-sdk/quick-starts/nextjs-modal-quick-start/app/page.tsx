@@ -50,23 +50,14 @@ const configs: {name: string, clientId: string, web3AuthNetwork: WEB3AUTH_NETWOR
     clientId: "BM3yT6NmMXOrwztsgF1V15ZxVOVjG6q3nRr9baQaOSrkRLFq-J40dvzZA-S6TSkWYOwgszkS1Y1aYMAQCPbL5oE",
     web3AuthNetwork: WEB3AUTH_NETWORK.TESTNET,
     loginConfig: {
-      // hana wallet address : 0x38AafAb27b0473e5E5fC33152662CB7B3bc299cF
-      // TODO get the same wallet address with Hana Wallet without email_passwordless configuration
-      // email_passwordless: {  // not working
-      //   verifier: "hana-email-aggregate-2",
-      //   verifierSubIdentifier: "hana-email-1",
-      //   typeOfLogin: "email_passwordless",
-      // },
       google: {
-        // hana wallet address : 0xa976653De0AD943c62babe090a3476124B70Fb74
-        // TODO can't get the same wallet address with Hana. Need to check the configuration
+        // TODO different wallet address with Hana. Need to check the configuration
+        // hana wallet v4.1.3 address: 0xa976653De0AD943c62babe090a3476124B70Fb74
+        // this example address: 0x7f466b2830C6bBfD9386D5D73727dA47A7EE33FA
         verifier: "hana-google-aggregate",
-        verifierSubIdentifier: "hana-google-chrome-test2", // 0x7f466b2830C6bBfD9386D5D73727dA47A7EE33FA
-        // verifierSubIdentifier: "hana-google-1",  // 0x7f466b2830C6bBfD9386D5D73727dA47A7EE33FA
+        verifierSubIdentifier: "hana-google-chrome-test2",
         typeOfLogin: "google",
         clientId: "126616343848-09it14orn4odu9mfuads76u3kf5odogs",
-        // clientId: "126616343848-3g5m6kljmfabkljhbb1c7o0i3o8uuq7d", // not working
-        // clientId: "126616343848-2fk7d89f52ge3i85lcedt1m0g7p01m5n",  // not working
       },
     },
   },
@@ -77,10 +68,13 @@ function App() {
   const [provider, setProvider] = useState<IProvider | null>(null);
   const [loggedIn, setLoggedIn] = useState(false);
   const [configIndex, setconfigIndex] = useState<number>(0);
+  const [editorValue, setEditorValue] = useState(JSON.stringify(configs[0], null, 2));
+  const [initWeb3auth, setInitWeb3auth] = useState(false);
   const [web3auth, setWeb3Auth] = useState<Web3Auth | null>(null);
 
   useEffect(() => {
     const init = async () => {
+      if (!initWeb3auth) return;
       try {
         console.log("init web3auth with configIndex", configIndex);
 // IMP START - Chain Config
@@ -140,7 +134,8 @@ function App() {
     };
 
     init();
-  }, [configIndex]);
+    setInitWeb3auth(false);
+  }, [initWeb3auth]);
 
   const login = async () => {
     // IMP START - Login
@@ -253,23 +248,42 @@ function App() {
     </>
   );
 
+  const handleSave = () => {
+    configs[configIndex] = JSON.parse(editorValue);
+    setInitWeb3auth(true);
+  };
+
   const unloggedInView = (
     <div className="card space-x-2">
       <select
         value={configIndex}
-        onChange={(e) => setconfigIndex(Number(e.target.value))}
+        onChange={(e) => {
+          const newIndex = Number(e.target.value);
+          setconfigIndex(newIndex);
+          setEditorValue(JSON.stringify(configs[newIndex], null, 2));
+          setInitWeb3auth(true);
+        }}
         className="border rounded p-1"
       >
         <option value={0}>Web3auth</option>
         <option value={1}>Supercycl</option>
         <option value={2}>Hana Wallet</option>
       </select>
-      <pre style={{ textAlign: "left" }}>
-        {JSON.stringify(configs[configIndex], null, 2)}
-      </pre>
-      <button onClick={login} className="card">
-        Login
-      </button>
+      <textarea
+        value={editorValue}
+        onChange={(e) => setEditorValue(e.target.value)}
+        rows={20}
+        cols={120}
+        className="w-full border rounded p-2 font-mono text-sm"
+      />
+      <div className="flex gap-2">
+        <button onClick={handleSave} className="bg-green-500 text-white px-3 py-1 rounded">
+          Save
+        </button>
+        <button onClick={login} className="card">
+          Login
+        </button>
+      </div>
     </div>
   );
   return (
